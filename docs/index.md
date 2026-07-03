@@ -39,6 +39,11 @@ This documentation is organized around the SDK user journey:
 - [Schemas](api-reference/schemas.md) — full data dictionary of every returned frame
 - [Errors](api-reference/errors.md)
 
+## Tutorials
+
+- [Plotting with matplotlib](tutorials/matplotlib-plots.md) — race pace, tyre stints,
+  and speed-trace comparison charts, built on the analysis + plotting-token APIs.
+
 ## Concepts
 
 - [Overview](concepts/overview.md)

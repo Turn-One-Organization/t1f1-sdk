@@ -8,7 +8,7 @@ description = "A fast, robust Formula 1 telemetry SDK — a modern polars-native
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Turn One Telemetry" }]
+authors = [{ name = "Turn One" }]
 keywords = ["formula1", "f1", "telemetry", "motorsport", "polars"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -32,6 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 redis = ["redis>=5.0"]
+plot = ["matplotlib>=3.7"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -40,6 +41,7 @@ dev = [
     "ruff>=0.6",
     "black>=24.0",
     "redis>=5.0",
+    "matplotlib>=3.7",
 ]
 
 [project.urls]
@@ -52,6 +54,20 @@ path = "src/t1f1/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/t1f1"]
+
+[tool.semantic_release]
+version_variables = ["src/t1f1/_version.py:__version__"]
+branch = "master"
+build_command = "pip install build && python -m build"
+tag_format = "v{version}"
+commit_parser = "conventional"
+major_on_zero = false
+
+[tool.semantic_release.remote]
+type = "github"
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = true
 
 [tool.ruff]
 line-length = 100

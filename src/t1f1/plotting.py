@@ -15,7 +15,7 @@ import re
 
 import polars as pl
 
-#: 2024-season team colors (hex). Team names/liveries change season to season —
+#: 2026-season team colors (hex). Team names/liveries change season to season —
 #: pass a fresher mapping via ``palette=`` on any lookup below if these go stale.
 TEAM_COLORS: dict[str, str] = {
     "red bull racing": "#3671C6",
@@ -25,9 +25,10 @@ TEAM_COLORS: dict[str, str] = {
     "aston martin": "#229971",
     "alpine": "#FF87BC",
     "williams": "#64C4FF",
-    "rb": "#6692FF",
-    "kick sauber": "#52E252",
+    "racing bulls": "#6692FF",
+    "audi": "#910023",
     "haas f1 team": "#B6BABD",
+    "cadillac": "#C9A44C",
 }
 
 #: Tyre compound colors — the standard Pirelli/FIA convention (stable across seasons).

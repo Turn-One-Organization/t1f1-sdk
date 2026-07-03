@@ -18,6 +18,9 @@ venv/
 # Local frame cache (later modules)
 .t1f1_cache/
 
+# Generated example output (docs/assets/plots/*.png is committed separately)
+examples/output/
+
 # IDE / OS
 .idea/
 .vscode/

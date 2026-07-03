@@ -79,6 +79,10 @@ teams = driver_team_map(session.results())
 # {"VER": "Red Bull Racing", "NOR": "McLaren", ...}
 ```
 
+> See the [matplotlib tutorial](../tutorials/matplotlib-plots.md) for full,
+> runnable recipes (race pace, tyre stints, speed-trace comparison) with rendered
+> output.
+
 ## Putting it together — a matplotlib example
 
 ```python
