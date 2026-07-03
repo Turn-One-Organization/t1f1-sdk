@@ -95,3 +95,11 @@ class UpstreamUnavailableError(T1F1Error):
         self.reason = reason
         self.retry_after = retry_after if retry_after is not None else self.RETRY_AFTER_SECONDS
         super().__init__(reason or f"Upstream unavailable: {source}")
+
+
+#: Errors that mean "this particular upstream is having a bad time right now" rather
+#: than "the request itself is wrong" — safe to silently retry against a fallback
+#: source (premium T1API -> local free-tier compute, or T1API -> Ergast). Deliberately
+#: excludes ``AuthError``: a rejected API key is a configuration mistake the caller
+#: should see, not something to paper over by quietly degrading to the free tier.
+PREMIUM_FALLBACK_ERRORS = (UpstreamUnavailableError, DataNotAvailableError, RateLimitError)

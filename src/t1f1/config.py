@@ -10,6 +10,10 @@ F1_LIVETIMING_BASE_URL = "https://livetiming.formula1.com/static/"
 #: Proprietary T1API base (premium tier).
 T1API_BASE_URL = "https://api.t1f1.com"
 
+#: jolpica-f1's free, public Ergast-compatible API (no key needed — standings,
+#: results, and schedules; the classic ergast.com API's community-run successor).
+ERGAST_BASE_URL = "https://api.jolpi.ca/ergast/f1/"
+
 #: Browser-like headers required to fetch from the F1 CDN without being blocked.
 _DEFAULT_F1_HEADERS = {
     "User-Agent": (
@@ -33,6 +37,7 @@ class ClientConfig:
 
     f1_base_url: str = F1_LIVETIMING_BASE_URL
     t1api_base_url: str = T1API_BASE_URL
+    ergast_base_url: str = ERGAST_BASE_URL
     timeout: float = 30.0
     max_retries: int = 3
     backoff_base: float = 0.5
@@ -47,3 +52,7 @@ class ClientConfig:
     def t1api_url(self, path: str) -> str:
         """Join a path onto the T1API base URL."""
         return self.t1api_base_url.rstrip("/") + "/" + path.lstrip("/")
+
+    def ergast_url(self, path: str) -> str:
+        """Join a path onto the jolpica-f1/Ergast base URL."""
+        return self.ergast_base_url.rstrip("/") + "/" + path.lstrip("/")

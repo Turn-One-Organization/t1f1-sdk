@@ -39,6 +39,11 @@ def z_stream(lines: list[tuple[str, Any]]) -> str:
     return "\n".join(f'{ts}"{compress_z(payload)}"' for ts, payload in lines)
 
 
+def plain_stream(lines: list[tuple[str, Any]]) -> str:
+    """Build a plain ``.jsonStream`` document: ``HH:MM:SS.mmm<json>`` per line."""
+    return "\n".join(f"{ts}{json.dumps(payload)}" for ts, payload in lines)
+
+
 # -- synthetic feed payloads --------------------------------------------------
 
 
@@ -166,6 +171,241 @@ def position_text() -> str:
 
 
 @pytest.fixture
+def session_info_json() -> dict[str, Any]:
+    """SessionInfo.json: StartDate is local circuit time; GmtOffset +02:00 puts UTC
+    midday at 13:00, matching the CarData/Position fixtures' embedded ``Utc`` values."""
+    return {
+        "Meeting": {
+            "Key": 1234,
+            "Name": "Italian Grand Prix",
+            "OfficialName": "FORMULA 1 PIRELLI GRAN PREMIO D'ITALIA 2024",
+            "Location": "Monza",
+        },
+        "Key": 10,
+        "Type": "Qualifying",
+        "Name": "Qualifying",
+        "StartDate": "2024-08-31T15:00:00",
+        "EndDate": "2024-08-31T16:00:00",
+        "GmtOffset": "02:00:00",
+        "Path": SESSION_PATH,
+    }
+
+
+@pytest.fixture
+def timing_data_text() -> str:
+    """Two completed laps each for VER ("1") and NOR ("4"); VER pits between laps."""
+    lines: list[tuple[str, Any]] = [
+        ("00:00:05.000", {"Lines": {"1": {"Sectors": {"0": {"Value": "28.887"}}}}}),
+        ("00:00:06.000", {"Lines": {"4": {"Sectors": {"0": {"Value": "29.001"}}}}}),
+        ("00:00:35.000", {"Lines": {"1": {"Sectors": {"1": {"Value": "24.500"}}}}}),
+        ("00:00:36.000", {"Lines": {"4": {"Sectors": {"1": {"Value": "24.800"}}}}}),
+        (
+            "00:01:05.000",
+            {
+                "Lines": {
+                    "1": {
+                        "Sectors": {"2": {"Value": "26.900"}},
+                        "Speeds": {
+                            "I1": {"Value": "310"},
+                            "I2": {"Value": "315"},
+                            "FL": {"Value": "320"},
+                            "ST": {"Value": "330"},
+                        },
+                        "Position": "1",
+                        "LastLapTime": {"Value": "1:20.287", "PersonalFastest": True},
+                    }
+                }
+            },
+        ),
+        (
+            "00:01:06.000",
+            {
+                "Lines": {
+                    "4": {
+                        "Sectors": {"2": {"Value": "27.100"}},
+                        "Speeds": {
+                            "I1": {"Value": "305"},
+                            "I2": {"Value": "308"},
+                            "FL": {"Value": "312"},
+                            "ST": {"Value": "318"},
+                        },
+                        "Position": "2",
+                        "LastLapTime": {"Value": "1:20.901", "PersonalFastest": True},
+                    }
+                }
+            },
+        ),
+        ("00:01:10.000", {"Lines": {"1": {"InPit": True}}}),
+        ("00:01:40.000", {"Lines": {"1": {"Sectors": {"0": {"Value": "30.000"}}}}}),
+        ("00:01:40.000", {"Lines": {"4": {"Sectors": {"0": {"Value": "29.500"}}}}}),
+        ("00:02:10.000", {"Lines": {"1": {"PitOut": True}}}),
+        ("00:02:10.000", {"Lines": {"4": {"Sectors": {"1": {"Value": "24.900"}}}}}),
+        ("00:02:15.000", {"Lines": {"1": {"Sectors": {"1": {"Value": "25.000"}}}}}),
+        (
+            "00:02:40.000",
+            {
+                "Lines": {
+                    "4": {
+                        "Sectors": {"2": {"Value": "27.200"}},
+                        "Speeds": {
+                            "I1": {"Value": "306"},
+                            "I2": {"Value": "309"},
+                            "FL": {"Value": "313"},
+                            "ST": {"Value": "319"},
+                        },
+                        "Position": "2",
+                        "LastLapTime": {"Value": "1:21.600", "PersonalFastest": False},
+                    }
+                }
+            },
+        ),
+        (
+            "00:02:45.000",
+            {
+                "Lines": {
+                    "1": {
+                        "Sectors": {"2": {"Value": "27.000"}},
+                        "Speeds": {
+                            "I1": {"Value": "300"},
+                            "I2": {"Value": "305"},
+                            "FL": {"Value": "300"},
+                            "ST": {"Value": "310"},
+                        },
+                        "Position": "1",
+                        "LastLapTime": {"Value": "1:22.000", "PersonalFastest": False},
+                    }
+                }
+            },
+        ),
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
+def timing_app_data_text() -> str:
+    """VER: SOFT (lap 1) -> HARD (lap 2, after the pit stop). NOR: MEDIUM throughout."""
+    lines: list[tuple[str, Any]] = [
+        (
+            "00:00:00.000",
+            {
+                "Lines": {
+                    "1": {
+                        "GridPos": "1",
+                        "Stints": {
+                            "0": {"Compound": "SOFT", "New": "true", "StartLaps": 0, "TotalLaps": 1}
+                        },
+                    },
+                    "4": {
+                        "GridPos": "3",
+                        "Stints": {
+                            "0": {
+                                "Compound": "MEDIUM",
+                                "New": "true",
+                                "StartLaps": 0,
+                                "TotalLaps": 2,
+                            }
+                        },
+                    },
+                }
+            },
+        ),
+        (
+            "00:01:30.000",
+            {
+                "Lines": {
+                    "1": {
+                        "Stints": {
+                            "1": {"Compound": "HARD", "New": "true", "StartLaps": 0, "TotalLaps": 1}
+                        }
+                    }
+                }
+            },
+        ),
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
+def weather_data_text() -> str:
+    lines: list[tuple[str, Any]] = [
+        (
+            "00:00:00.000",
+            {
+                "AirTemp": "24.5",
+                "Humidity": "45.0",
+                "Pressure": "1013.0",
+                "Rainfall": "0",
+                "TrackTemp": "35.0",
+                "WindDirection": "180",
+                "WindSpeed": "1.5",
+            },
+        ),
+        (
+            "00:01:00.000",
+            {
+                "AirTemp": "24.7",
+                "Humidity": "44.0",
+                "Pressure": "1013.2",
+                "Rainfall": "0",
+                "TrackTemp": "35.5",
+                "WindDirection": "185",
+                "WindSpeed": "1.8",
+            },
+        ),
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
+def track_status_text() -> str:
+    lines: list[tuple[str, Any]] = [
+        ("00:00:00.000", {"Status": "1", "Message": "AllClear"}),
+        ("00:01:15.000", {"Status": "2", "Message": "Yellow"}),
+        ("00:01:50.000", {"Status": "1", "Message": "AllClear"}),
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
+def session_status_text() -> str:
+    lines: list[tuple[str, Any]] = [
+        ("00:00:00.000", {"Status": "Started"}),
+        ("00:03:00.000", {"Status": "Finished"}),
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
+def race_control_text() -> str:
+    lines: list[tuple[str, Any]] = [
+        (
+            "00:01:15.000",
+            {
+                "Messages": {
+                    "0": {
+                        "Category": "Flag",
+                        "Flag": "YELLOW",
+                        "Scope": "Sector",
+                        "Sector": 3,
+                        "Message": "YELLOW IN TRACK SECTOR 3",
+                    }
+                }
+            },
+        )
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
+def lap_count_text() -> str:
+    lines: list[tuple[str, Any]] = [
+        ("00:01:05.000", {"CurrentLap": 1, "TotalLaps": 2}),
+        ("00:02:45.000", {"CurrentLap": 2, "TotalLaps": 2}),
+    ]
+    return plain_stream(lines)
+
+
+@pytest.fixture
 def top_speed_payload() -> dict[str, Any]:
     """A T1API /api/v2/top-speed-telemetry-data response."""
     return {
@@ -180,11 +420,32 @@ def top_speed_payload() -> dict[str, Any]:
 
 
 @pytest.fixture
-def feed(index_json, driver_list, car_data_text, position_text):
+def feed(
+    index_json,
+    driver_list,
+    car_data_text,
+    position_text,
+    session_info_json,
+    timing_data_text,
+    timing_app_data_text,
+    weather_data_text,
+    track_status_text,
+    session_status_text,
+    race_control_text,
+    lap_count_text,
+):
     """Bundle of the synthetic feed, keyed for convenient registration in tests."""
     return {
         INDEX_URL: json.dumps(index_json).encode("utf-8"),
         SESSION_URL + "DriverList.json": json.dumps(driver_list).encode("utf-8"),
         SESSION_URL + "CarData.z.jsonStream": car_data_text.encode("utf-8"),
         SESSION_URL + "Position.z.jsonStream": position_text.encode("utf-8"),
+        SESSION_URL + "SessionInfo.json": json.dumps(session_info_json).encode("utf-8"),
+        SESSION_URL + "TimingData.jsonStream": timing_data_text.encode("utf-8"),
+        SESSION_URL + "TimingAppData.jsonStream": timing_app_data_text.encode("utf-8"),
+        SESSION_URL + "WeatherData.jsonStream": weather_data_text.encode("utf-8"),
+        SESSION_URL + "TrackStatus.jsonStream": track_status_text.encode("utf-8"),
+        SESSION_URL + "SessionStatus.jsonStream": session_status_text.encode("utf-8"),
+        SESSION_URL + "RaceControlMessages.jsonStream": race_control_text.encode("utf-8"),
+        SESSION_URL + "LapCount.jsonStream": lap_count_text.encode("utf-8"),
     }

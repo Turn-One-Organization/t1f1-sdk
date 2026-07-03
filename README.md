@@ -3,6 +3,8 @@
 A fast, robust **Formula 1 telemetry SDK** — a modern, `polars`-native competitor to
 [`fastf1`](https://github.com/theOehrly/Fast-F1).
 
+Full documentation starts at [docs/index.md](docs/index.md).
+
 `t1f1-sdk` uses a **hybrid architecture**:
 
 - **Free tier (no API key):** fetches raw data directly from the official F1
@@ -101,10 +103,42 @@ async def main():
 df = asyncio.run(main())
 ```
 
+### Caching
+
+```python
+from t1f1 import Client
+from t1f1.cache import enable_cache
+
+client = Client(cache=enable_cache("./.t1f1_cache"))
+```
+
+Two tiers — raw HTTP bytes and fully-decoded frames — both keyed for reuse across
+processes. Measured live against a real Qualifying session: cold load (laps +
+results + weather + telemetry) took ~3.5s, a warm reload from the same cache took
+~0.5s, about **7x** faster, with byte-identical output. See
+[docs/concepts/caching.md](docs/concepts/caching.md).
+
+More runnable examples (premium fallback, quota inspection, concurrent multi-session
+loading) are in [`examples/`](examples/).
+
+## Coming from fastf1?
+
+See [docs/getting-started/migration-from-fastf1.md](docs/getting-started/migration-from-fastf1.md)
+for a cheatsheet mapping common calls and pandas → polars idioms.
+
 ## Status
 
-Module 1 (hybrid foundation) is under active development. See the roadmap for the path
-to full `fastf1` parity and beyond.
+Modules 1–7 of the roadmap are done: hybrid free/premium foundation, session/laps/
+results/weather parity, telemetry engine, events/standings/circuits, the analysis +
+plotting suite, two-tier caching, and premium ergonomics (graceful fallback, quota
+surfacing, transparent source tracking). `t1f1-sdk` has feature parity with `fastf1`
+across every axis in the table above, plus capabilities `fastf1` doesn't ship
+(`track_dominance`, async multi-session loading, typed schemas throughout).
+
+## Documentation
+
+Start with [docs/index.md](docs/index.md) for the SDK overview, then follow the
+getting-started and API reference pages from there.
 
 ## License
 

@@ -13,10 +13,12 @@ from __future__ import annotations
 import asyncio
 import json
 import random
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
+from t1f1.cache import CacheBackend
 from t1f1.config import ClientConfig
 from t1f1.exceptions import (
     AuthError,
@@ -37,6 +39,38 @@ def _parse_retry_after(value: str | None) -> float | None:
         return None  # HTTP-date form: fall back to our own backoff schedule.
 
 
+@dataclass(frozen=True)
+class QuotaInfo:
+    """Rate-limit usage reported by the upstream on its most recent response.
+
+    Field names follow the ``X-RateLimit-*`` headers documented for T1API's tiered
+    rate limiter (``api-docs/old/RATE_LIMITING.md``) — that document lives under
+    ``old/`` rather than the current ``api-reference/`` tree, so treat this as a
+    best-effort parse rather than a guaranteed contract: unset fields just mean the
+    upstream didn't send that header on this response, not that quota tracking failed.
+    """
+
+    limit: int | None
+    remaining: int | None
+    reset: int | None  # Unix timestamp of the next window reset, per the legacy doc.
+
+
+def _parse_quota(headers: httpx.Headers) -> QuotaInfo | None:
+    limit = headers.get("X-RateLimit-Limit")
+    remaining = headers.get("X-RateLimit-Remaining")
+    reset = headers.get("X-RateLimit-Reset")
+    if limit is None and remaining is None and reset is None:
+        return None
+
+    def _to_int(value: str | None) -> int | None:
+        try:
+            return int(value) if value is not None else None
+        except ValueError:
+            return None
+
+    return QuotaInfo(limit=_to_int(limit), remaining=_to_int(remaining), reset=_to_int(reset))
+
+
 class AsyncTransport:
     """A thin async HTTP wrapper scoped to a single upstream (``source``).
 
@@ -51,6 +85,12 @@ class AsyncTransport:
     client:
         Optionally inject an ``httpx.AsyncClient`` (used by tests via
         ``httpx.MockTransport``). When injected, the caller owns its lifecycle.
+    cache:
+        Optional :class:`~t1f1.cache.CacheBackend`. When set, ``get_bytes`` (and
+        therefore ``get_text``/``get_json``) checks the cache before hitting the
+        network and populates it after a successful fetch — every stream this
+        transport serves (F1 feed, T1API, or Ergast) gets byte-level caching for free,
+        keyed by URL.
     """
 
     def __init__(
@@ -60,10 +100,13 @@ class AsyncTransport:
         config: ClientConfig,
         base_headers: dict[str, str] | None = None,
         client: httpx.AsyncClient | None = None,
+        cache: CacheBackend | None = None,
     ) -> None:
         self._source = source
         self._config = config
         self._headers = dict(base_headers or {})
+        self._cache = cache
+        self._last_quota: QuotaInfo | None = None
         if client is not None:
             self._client = client
             self._owns_client = False
@@ -85,11 +128,25 @@ class AsyncTransport:
         if self._owns_client:
             await self._client.aclose()
 
+    @property
+    def last_quota(self) -> QuotaInfo | None:
+        """Rate-limit usage from the most recent network response, if the upstream
+        sent ``X-RateLimit-*`` headers. ``None`` until a request has actually hit the
+        network (a cache hit doesn't update it) or if the upstream never sends them."""
+        return self._last_quota
+
     # -- public fetch helpers -------------------------------------------------
 
     async def get_bytes(self, url: str) -> bytes:
+        if self._cache is not None:
+            cached = await self._cache.get_bytes(url)
+            if cached is not None:
+                return cached
         response = await self._request(url)
-        return response.content
+        content = response.content
+        if self._cache is not None:
+            await self._cache.set_bytes(url, content)
+        return content
 
     async def get_text(self, url: str) -> str:
         """Fetch and decode as UTF-8, tolerating the BOM the F1 CDN emits."""
@@ -113,6 +170,10 @@ class AsyncTransport:
                     ) from exc
                 await self._sleep_backoff(attempt)
                 continue
+
+            quota = _parse_quota(response.headers)
+            if quota is not None:
+                self._last_quota = quota
 
             if response.status_code < 400:
                 return response

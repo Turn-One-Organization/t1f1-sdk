@@ -7,6 +7,17 @@ Ports the season-index scraping and session-alias matching from the backend's
 The F1 ``Index.json`` lists ``Meetings`` (events); each meeting lists ``Sessions``,
 and each session carries a ``Path`` relative to the static base — we use that directly
 to build the session directory URL.
+
+**Known, confirmed-live limitation:** for a past season, ``Index.json`` does not
+necessarily list *every* round — checked live against 2024, whose ``Index.json``
+only retains the final 15 of 24 meetings (starting from the Spanish GP; Bahrain
+through Monaco are absent). Since an integer ``gp`` is resolved as a **positional**
+index into whatever ``Meetings`` *does* contain (``1 <= gp <= len(meetings)``, not
+the real FIA round number), passing an early-season round number for an affected
+year silently resolves to the wrong event rather than raising — e.g. ``gp=1`` for
+2024 resolves to the Spanish GP, not Bahrain. Prefer event name/key lookups (``gp="Bahrain
+Grand Prix"``) over integer round numbers when working with older/partial seasons;
+there is currently no cheap way to detect whether a given year's index is complete.
 """
 
 from __future__ import annotations

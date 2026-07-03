@@ -26,6 +26,7 @@ from t1f1.config import ClientConfig
 from t1f1.exceptions import (
     AuthError,
     DataNotAvailableError,
+    RateLimitError,
     SessionNotFoundError,
     T1F1Error,
     UpstreamUnavailableError,
@@ -38,6 +39,7 @@ __all__ = [
     "T1F1Error",
     "AuthError",
     "DataNotAvailableError",
+    "RateLimitError",
     "SessionNotFoundError",
     "UpstreamUnavailableError",
     "__version__",
